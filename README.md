@@ -7,28 +7,10 @@
 </p>
 
 <p align="center">
-  <a href="https://dongjushin-ai.github.io/agent-control-tower/?demo"><b>Live demo</b></a> ·
-  <a href="#quick-start">Quick start</a> ·
-  <a href="snippets/">Snippets</a> ·
-  <a href="docs/private-repos.md">Private repos</a> ·
-  <a href="README.ko.md">한국어</a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/dongjushin-ai/agent-control-tower/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/dongjushin-ai/agent-control-tower/actions/workflows/ci.yml/badge.svg"></a>
-  <img alt="dependencies: 0" src="https://img.shields.io/badge/dependencies-0-brightgreen">
-  <img alt="node >= 20" src="https://img.shields.io/badge/node-%3E%3D20-blue">
-  <a href="LICENSE"><img alt="MIT" src="https://img.shields.io/badge/license-MIT-black"></a>
-</p>
-
-<p align="center">
   <a href="https://dongjushin-ai.github.io/agent-control-tower/?demo">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/dashboard-dark.png">
-      <img alt="Dashboard: one failed task, one silent task, partial and healthy tasks with 7-day success bars (demo data)" src="docs/assets/dashboard-light.png" width="860">
-    </picture>
+    <img alt="Demo: all tasks healthy, then the price watcher's agent crashes and writes nothing, its card turns Silent and the alert banner appears, then dark mode (demo data)" src="docs/assets/demo.gif" width="860">
   </a>
-  <br><sub>Demo data. Click for the live page. <!-- GIF slot: an agent dies, its card turns "Silent", the watchdog run goes red --></sub>
+  <br><sub>Demo data, sped up. An agent dies without a word, its card turns "Silent". Click for the live page.</sub>
 </p>
 
 ## Why
@@ -56,7 +38,7 @@ npx agent-control-tower init --workflows
 git add tower .github && git commit -m "Add agent control tower" && git push
 ```
 
-> Not on npm yet? Use `npx github:dongjushin-ai/agent-control-tower init --workflows`.
+> Until the package is on npm, use `npx github:dongjushin-ai/agent-control-tower init --workflows` instead (same commands, fetched from GitHub).
 
 Then pick how each agent records its runs:
 
@@ -73,6 +55,10 @@ Look at it:
 npx agent-control-tower status    # terminal; exit code 2 if anything is failing or silent
 npx agent-control-tower serve     # dashboard on http://127.0.0.1:8787
 ```
+
+<p align="center">
+  <img alt="Terminal: log records a failed run, then status lists every task and exits with code 2" src="docs/assets/cli.gif" width="720">
+</p>
 
 For a permanent URL, turn on GitHub Pages (Settings > Pages > Source: **GitHub Actions**). The `tower-pages.yml` workflow
 that `init --workflows` added publishes the dashboard on every log push.

@@ -1,0 +1,40 @@
+name: Release
+
+# Runs when a version tag is pushed:  git tag v0.1.0 && git push --tags
+# Tests first, then publishes to npm with provenance. Without an NPM_TOKEN secret it only tests and skips publishing.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write # npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Tag matches package.json version
+        run: |
+          pkg="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$pkg" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+      - name: Tests
+        run: npm test
+      - name: Package contents
+        run: npm pack --dry-run
+      - name: Publish to npm
+        if: ${{ env.NODE_AUTH_TOKEN != '' }}
+        run: npm publish --provenance --access public
+      - name: Skip publish (no NPM_TOKEN)
+        if: ${{ env.NODE_AUTH_TOKEN == '' }}
+        run: echo "::warning::NPM_TOKEN secret is not set, so nothing was published. See docs/releasing.md."

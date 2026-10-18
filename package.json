@@ -42,6 +42,7 @@
   "scripts": {
     "test": "node --test",
     "demo": "node bin/tower.mjs serve",
-    "screenshot": "node scripts/screenshot.mjs"
+    "screenshot": "node scripts/screenshot.mjs",
+    "demo-gif": "node scripts/demo-gif.mjs"
   }
 }

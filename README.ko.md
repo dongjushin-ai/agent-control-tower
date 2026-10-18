@@ -16,9 +16,9 @@
 
 <p align="center">
   <a href="https://dongjushin-ai.github.io/agent-control-tower/?demo&lang=ko">
-    <img alt="대시보드: 실패 1개, 기록 끊김 1개, 부분 성공·정상 작업과 7일 막대 (데모 데이터)" src="docs/assets/dashboard-ko.png" width="860">
+    <img alt="데모: 모든 작업이 정상이다가 가격 감시 에이전트가 아무 기록도 남기지 않고 죽으면 카드가 끊김(Silent)으로 바뀌고 경고 배너가 뜬 뒤, 다크 모드로 전환 (데모 데이터)" src="docs/assets/demo.gif" width="860">
   </a>
-  <br><sub>데모 데이터예요. 누르면 라이브 페이지가 열려요.</sub>
+  <br><sub>데모 데이터를 빠르게 돌린 화면이에요(화면 안 글자는 영어). 에이전트가 조용히 죽으면 카드가 "끊김"으로 바뀌어요. 누르면 한국어 라이브 페이지가 열려요.</sub>
 </p>
 
 ## 왜 필요한가
@@ -46,7 +46,7 @@ npx agent-control-tower init --workflows
 git add tower .github && git commit -m "Add agent control tower" && git push
 ```
 
-> 아직 npm에 없다면: `npx github:dongjushin-ai/agent-control-tower init --workflows`
+> npm에 올라가기 전에는 `npx github:dongjushin-ai/agent-control-tower init --workflows`로 쓰세요 (명령은 같고 GitHub에서 받아 와요).
 
 에이전트마다 기록 방법을 골라요.
 
@@ -63,6 +63,10 @@ git add tower .github && git commit -m "Add agent control tower" && git push
 npx agent-control-tower status    # 터미널 요약, 실패·끊김이 있으면 종료 코드 2
 npx agent-control-tower serve     # http://127.0.0.1:8787 에서 대시보드
 ```
+
+<p align="center">
+  <img alt="터미널: log로 실패한 실행을 기록하고, status가 모든 작업을 보여 주며 종료 코드 2로 끝남" src="docs/assets/cli.gif" width="720">
+</p>
 
 상시 주소가 필요하면 GitHub Pages를 켜세요 (Settings > Pages > Source: **GitHub Actions**). `init --workflows`가 추가한
 `tower-pages.yml`이 기록이 push될 때마다 대시보드를 배포해요.
