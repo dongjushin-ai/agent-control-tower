@@ -1,6 +1,10 @@
 <h1 align="center">Agent Control Tower (에이전트 관제탑)</h1>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/agent-control-tower"><img alt="npm" src="https://img.shields.io/npm/v/agent-control-tower"></a>
+</p>
+
+<p align="center">
   <b>사람 없이 도는 AI 에이전트가 실패했는지, 조용히 멈췄는지 알려 줘요.</b><br>
   Claude Code 예약 작업, GitHub Actions, cron, 그 밖의 LLM 에이전트를 위한 데드맨 스위치 + 대시보드.<br>
   서버·DB·계정 없음: 기록은 git 저장소의 JSON Lines, 대시보드는 정적 페이지 한 장.
@@ -45,8 +49,6 @@
 npx agent-control-tower init --workflows
 git add tower .github && git commit -m "Add agent control tower" && git push
 ```
-
-> npm에 올라가기 전에는 `npx github:dongjushin-ai/agent-control-tower init --workflows`로 쓰세요 (명령은 같고 GitHub에서 받아 와요).
 
 에이전트마다 기록 방법을 골라요.
 

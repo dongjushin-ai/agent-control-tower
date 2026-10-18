@@ -1,6 +1,10 @@
 <h1 align="center">Agent Control Tower</h1>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/agent-control-tower"><img alt="npm" src="https://img.shields.io/npm/v/agent-control-tower"></a>
+</p>
+
+<p align="center">
   <b>Know when your unattended AI agents fail, or silently stop running.</b><br>
   A dead-man's switch and dashboard for Claude Code scheduled tasks, GitHub Actions, cron jobs and any other LLM agent.<br>
   No server, no database, no account: logs are JSON Lines in your git repo, the dashboard is one static page.
@@ -37,8 +41,6 @@ at 3 a.m. Agent Control Tower is built for that case:
 npx agent-control-tower init --workflows
 git add tower .github && git commit -m "Add agent control tower" && git push
 ```
-
-> Until the package is on npm, use `npx github:dongjushin-ai/agent-control-tower init --workflows` instead (same commands, fetched from GitHub).
 
 Then pick how each agent records its runs:
 
