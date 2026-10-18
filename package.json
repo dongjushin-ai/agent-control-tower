@@ -1,0 +1,47 @@
+{
+  "name": "agent-control-tower",
+  "version": "0.1.0",
+  "description": "A dead-man's switch and dashboard for AI agents that run unattended (Claude Code scheduled tasks, GitHub Actions, cron). No server: JSONL in git + a static page.",
+  "keywords": [
+    "claude-code",
+    "ai-agents",
+    "agent-monitoring",
+    "dead-mans-switch",
+    "cron",
+    "github-actions",
+    "github-pages",
+    "dashboard",
+    "observability",
+    "llm"
+  ],
+  "license": "MIT",
+  "author": "DockY (https://github.com/dongjushin-ai)",
+  "homepage": "https://github.com/dongjushin-ai/agent-control-tower#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dongjushin-ai/agent-control-tower.git"
+  },
+  "bugs": "https://github.com/dongjushin-ai/agent-control-tower/issues",
+  "bin": {
+    "agent-control-tower": "bin/tower.mjs",
+    "tower": "bin/tower.mjs"
+  },
+  "main": "dashboard/tower-core.js",
+  "files": [
+    "bin/",
+    "dashboard/",
+    "templates/",
+    "snippets/",
+    "README.md",
+    "README.ko.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo": "node bin/tower.mjs serve",
+    "screenshot": "node scripts/screenshot.mjs"
+  }
+}

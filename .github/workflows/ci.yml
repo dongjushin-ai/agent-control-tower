@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Unit and CLI tests
+        run: npm test
+      - name: Package contents
+        run: npm pack --dry-run
+      - name: End-to-end smoke test (init, log, run, status, build)
+        run: |
+          set -e
+          work="$(mktemp -d)"
+          cli="node $GITHUB_WORKSPACE/bin/tower.mjs"
+          cd "$work"
+          $cli init --task smoke --every 1 --workflows
+          $cli log --task smoke --status ok --summary "smoke test"
+          $cli run --task wrapped -- node -e "console.log('hi')"
+          $cli status
+          $cli status --markdown >> "$GITHUB_STEP_SUMMARY"
+          $cli build --out site
+          test -f site/index.html && test -f site/summary.json && test -f .github/workflows/tower-watchdog.yml
+          if $cli log --task smoke --status ok --summary "token ghp_abcdefghijklmnopqrstuvwxyz0123"; then
+            echo "secret was not refused"; exit 1
+          fi

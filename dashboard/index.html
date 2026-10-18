@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Control Tower</title>
+<meta name="description" content="Status, 7-day success rate and silent-agent alerts for unattended AI agents and cron jobs.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0b0b'/%3E%3Cpath d='M16 6v20M10 26h12M16 6l-5 8h10z' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f6f6f3;
+  --surface: #fcfcfb;
+  --surface-2: #f1f0ec;
+  --line: #e4e3de;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #84827c;
+  --accent: #2a6fd6;
+  --good: #149c3c;
+  --warning: #e3a008;
+  --serious: #e5733f;
+  --critical: #d03b3b;
+  --idle: #b9b8b1;
+  --good-bg: #e7f4e9;
+  --warning-bg: #fcf1d6;
+  --serious-bg: #fcebe2;
+  --critical-bg: #fbe5e4;
+  --idle-bg: #efeeea;
+  --on-strong: #ffffff;
+  --shadow: 0 1px 2px rgba(20, 20, 18, .04), 0 4px 16px rgba(20, 20, 18, .04);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #181817; --surface-2: #222220; --line: #2e2e2b;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #8d8b84; --accent: #5b9bf0;
+    --good: #2fb457; --warning: #f0b429; --serious: #f08a5a; --critical: #ef5b5b; --idle: #55544f;
+    --good-bg: #12261a; --warning-bg: #2c230e; --serious-bg: #2e1b12; --critical-bg: #321615; --idle-bg: #232321;
+    --on-strong: #0d0d0d; --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #181817; --surface-2: #222220; --line: #2e2e2b;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #8d8b84; --accent: #5b9bf0;
+  --good: #2fb457; --warning: #f0b429; --serious: #f08a5a; --critical: #ef5b5b; --idle: #55544f;
+  --good-bg: #12261a; --warning-bg: #2c230e; --serious-bg: #2e1b12; --critical-bg: #321615; --idle-bg: #232321;
+  --on-strong: #0d0d0d; --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 28px 16px 56px; }
+
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; color: var(--muted); font-weight: 600; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+h1 { font-size: 26px; line-height: 1.2; margin: 4px 0 0; letter-spacing: -.02em; font-weight: 750; }
+.meta { color: var(--ink-2); font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; cursor: pointer; line-height: 1.3;
+}
+.btn:hover { border-color: var(--muted); }
+.btn[disabled] { opacity: .6; cursor: default; }
+.btn:focus-visible, a:focus-visible, summary:focus-visible, .day:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.flag { font-size: 12px; font-weight: 650; color: var(--ink); background: var(--warning-bg); border-radius: 999px; padding: 3px 10px; }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); min-width: 0; }
+.tile .k { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.tile .k svg { width: 13px; height: 13px; }
+.tile .v { font-size: 28px; font-weight: 720; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--muted); }
+
+.alerts { display: grid; gap: 8px; margin-bottom: 16px; }
+.alert { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-size: 14px; border: 1px solid transparent; }
+.alert svg { width: 16px; height: 16px; margin-top: 2px; flex: none; }
+.alert.fail { background: var(--critical-bg); border-color: color-mix(in srgb, var(--critical) 30%, transparent); }
+.alert.fail svg { color: var(--critical); }
+.alert.stale { background: var(--serious-bg); border-color: color-mix(in srgb, var(--serious) 35%, transparent); }
+.alert.stale svg { color: var(--serious); }
+.alert.info { background: var(--surface-2); color: var(--ink-2); font-size: 13px; }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 18px 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.paused { opacity: .7; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.card h2 { font-size: 17px; margin: 0; letter-spacing: -.01em; font-weight: 700; overflow-wrap: anywhere; }
+.card h2 a { color: inherit; }
+.sched { font-size: 12px; color: var(--muted); margin-top: 3px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.kind { font-size: 11px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; line-height: 18px; white-space: nowrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 650; padding: 4px 10px 4px 8px; border-radius: 999px; white-space: nowrap; color: var(--ink); }
+.pill svg { width: 14px; height: 14px; flex: none; }
+.st-ok .pill { background: var(--good-bg); } .st-ok .pill svg { color: var(--good); }
+.st-warn .pill { background: var(--warning-bg); } .st-warn .pill svg { color: var(--warning); }
+.st-stale .pill { background: var(--serious-bg); } .st-stale .pill svg { color: var(--serious); }
+.st-fail .pill { background: var(--critical-bg); } .st-fail .pill svg { color: var(--critical); }
+.st-none .pill, .st-paused .pill { background: var(--idle-bg); } .st-none .pill svg, .st-paused .pill svg { color: var(--muted); }
+.card.st-fail { border-color: color-mix(in srgb, var(--critical) 45%, var(--line)); }
+.card.st-stale { border-color: color-mix(in srgb, var(--serious) 45%, var(--line)); }
+
+.last { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.last .when { font-size: 12px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.last .sum { font-size: 14px; margin-top: 3px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.last .more { margin-top: 4px; font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+.last.empty .sum { color: var(--muted); }
+
+.week { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: end; }
+.strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.day { display: flex; flex-direction: column; align-items: stretch; gap: 4px; border-radius: 6px; }
+.bar { height: 44px; border-radius: 6px; background: var(--surface-2); display: flex; flex-direction: column-reverse; overflow: hidden; gap: 2px; }
+.bar .seg { width: 100%; border-radius: 4px; flex: none; }
+.seg.ok { background: var(--good); } .seg.warn { background: var(--warning); } .seg.fail { background: var(--critical); }
+.dlabel { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.day.today .dlabel { color: var(--ink); font-weight: 650; }
+.rate { text-align: right; min-width: 92px; }
+.rate .num { font-size: 26px; font-weight: 720; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rate .lbl { font-size: 11px; color: var(--muted); }
+.rate .sub { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+details { border-top: 1px solid var(--line); padding-top: 8px; }
+summary { font-size: 13px; color: var(--ink-2); cursor: pointer; list-style: none; display: flex; justify-content: space-between; border-radius: 6px; }
+summary::-webkit-details-marker { display: none; }
+summary .chev { color: var(--muted); font-size: 12px; }
+.runs { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.runs li { display: grid; grid-template-columns: 16px 104px 1fr; gap: 8px; font-size: 13px; align-items: start; }
+.runs .t { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.runs .x { overflow-wrap: anywhere; color: var(--ink-2); }
+.runs svg { width: 14px; height: 14px; margin-top: 3px; }
+.runs .ok { color: var(--good); } .runs .warn { color: var(--warning); } .runs .fail { color: var(--critical); }
+
+.empty-state { background: var(--surface); border: 1px dashed var(--line); border-radius: 16px; padding: 28px 24px; grid-column: 1 / -1; }
+.empty-state h2 { margin: 0 0 6px; font-size: 18px; }
+.empty-state p { margin: 6px 0; color: var(--ink-2); }
+.empty-state ol { margin: 10px 0 16px; padding-left: 20px; color: var(--ink-2); display: grid; gap: 4px; }
+.empty-state .btn.primary { background: var(--ink); color: var(--page); border-color: var(--ink); }
+
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--page); font-size: 12px; padding: 7px 10px; border-radius: 8px; line-height: 1.45; max-width: 240px; opacity: 0; transition: opacity .08s; }
+.tip.show { opacity: 1; }
+
+footer { margin-top: 28px; color: var(--muted); font-size: 12px; display: grid; gap: 4px; }
+.skeleton { height: 220px; border-radius: 16px; background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%); background-size: 200% 100%; animation: sh 1.4s infinite linear; border: 1px solid var(--line); }
+@keyframes sh { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } .tip { transition: none; } }
+
+@media (max-width: 760px) {
+  .grid { grid-template-columns: 1fr; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  h1 { font-size: 22px; }
+  .wrap { padding-top: 20px; }
+}
+@media (max-width: 400px) {
+  .week { grid-template-columns: 1fr; }
+  .rate { text-align: left; }
+  .runs li { grid-template-columns: 16px 1fr; }
+  .runs .x { grid-column: 2; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Agent Control Tower <span id="flag"></span></div>
+      <h1 id="title">Agent Control Tower</h1>
+    </div>
+    <div class="meta">
+      <span id="updated">Loading…</span>
+      <button class="btn" id="theme" type="button" aria-label="Toggle theme">Auto</button>
+      <button class="btn" id="refresh" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <section class="tiles" id="tiles" aria-label="Summary"></section>
+  <section class="alerts" id="alerts" aria-live="polite"></section>
+  <main class="grid" id="cards">
+    <div class="skeleton"></div><div class="skeleton"></div>
+  </main>
+
+  <footer>
+    <div id="sources"></div>
+    <div><span id="powered">Powered by</span> <a href="https://github.com/dongjushin-ai/agent-control-tower" target="_blank" rel="noopener">agent-control-tower</a> · <span id="footnote">no server, no tracking: this page only reads JSON files.</span></div>
+  </footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script src="tower-core.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.TowerCore;
+  var params = new URLSearchParams(location.search);
+  var DATA = params.get('data');
+  // The project's own demo site sets <meta name="tower-default" content="demo"> so its root opens the demo.
+  var defaultMeta = document.querySelector('meta[name="tower-default"]');
+  var DEMO = params.has('demo') || (!DATA && !!defaultMeta && defaultMeta.getAttribute('content') === 'demo');
+
+  var UI = {
+    en: {
+      loading: 'Loading…', refresh: 'Refresh', checked: 'Checked {time}',
+      healthy: 'Healthy', partial: 'Partial', trouble: 'Failing or silent', rate7: '7-day success',
+      ofActive: 'of {n} active tasks', lastRun: 'by last run', needsLook: 'needs a look', noProblems: 'nothing to fix',
+      basis: '{n} runs', lastRunAt: 'Last run · {time}', viewResult: 'Open result ↗', took: 'took {s}s',
+      noneYet: 'No runs recorded yet. Paste the snippet at the end of this agent’s prompt and the next run shows up here.',
+      pausedTxt: 'This task is paused (enabled: false).',
+      silentFor: 'Silent · {dur}', every: 'about every {every}', successRate: '7-day success', successOf: '{ok} of {total} ok',
+      coverage: 'recorded {p}', coverageTip: 'Runs recorded vs. runs expected from the schedule',
+      recent: 'Recent runs ({n})', open: 'show', close: 'hide', noRecord: 'no runs', today: 'today',
+      runs: '{n} runs', expectedRuns: ' / {n} expected', breakdown: '{ok} ok', partialN: ' · {n} partial', failN: ' · {n} failed',
+      demo: 'Demo data', redacted: 'Redacted', srcDemo: 'Data: built-in demo (fake, generated in your browser).',
+      srcSummary: 'Data: {src}, generated {ago}.', srcDir: 'Data: {src}', autoRefresh: 'Refreshes every 5 minutes.',
+      loadFail: 'Could not load data: {msg}', badLines: '{task}: skipped {n} unreadable line(s) (first: line {line}, {msg})',
+      emptyTitle: 'No data here yet', emptyBody: 'This page reads <code>summary.json</code> next to it. Build one from your repo:',
+      emptyStep1: '<code>npx agent-control-tower init</code> in your repo',
+      emptyStep2: 'record runs with <code>npx agent-control-tower log …</code> (or paste a snippet into your agent)',
+      emptyStep3: '<code>npx agent-control-tower build --out _site</code> or the GitHub Pages workflow',
+      emptyStep4: 'or point this page at a folder: <code>?data=https://raw.githubusercontent.com/OWNER/REPO/main/tower/</code>',
+      openDemo: 'Open the demo', theme: { auto: 'Auto', light: 'Light', dark: 'Dark' }, kind: {},
+      powered: 'Powered by', footnote: 'no server, no tracking: this page only reads JSON files.'
+    },
+    ko: {
+      loading: '불러오는 중…', refresh: '새로고침', checked: '확인 {time}',
+      healthy: '정상', partial: '부분 성공', trouble: '실패·끊김', rate7: '최근 7일 성공률',
+      ofActive: '켜진 작업 {n}개 중', lastRun: '마지막 실행 기준', needsLook: '지금 확인 필요', noProblems: '문제 없음',
+      basis: '기록 {n}건 기준', lastRunAt: '마지막 실행 · {time}', viewResult: '결과 보기 ↗', took: '{s}초 걸림',
+      noneYet: '아직 기록이 없어요. 이 에이전트 프롬프트 끝에 지시문을 붙이면 다음 실행부터 보여요.',
+      pausedTxt: '이 작업은 꺼져 있어요 (enabled: false).',
+      silentFor: '기록 끊김 · {dur}', every: '약 {every}마다', successRate: '7일 성공률', successOf: '성공 {ok} / {total}회',
+      coverage: '기록률 {p}', coverageTip: '일정상 예상 실행 횟수 대비 남은 기록',
+      recent: '최근 기록 {n}개', open: '펼치기', close: '접기', noRecord: '기록 없음', today: '오늘',
+      runs: '실행 {n}회', expectedRuns: ' / 예상 {n}회', breakdown: '성공 {ok}', partialN: ' · 부분 {n}', failN: ' · 실패 {n}',
+      demo: '데모 데이터', redacted: '요약 가림', srcDemo: '데이터: 내장 데모 (가짜, 브라우저에서 생성).',
+      srcSummary: '데이터: {src}, {ago} 생성.', srcDir: '데이터: {src}', autoRefresh: '5분마다 새로고침.',
+      loadFail: '불러오지 못했어요: {msg}', badLines: '{task}: 읽을 수 없는 줄 {n}개를 건너뜀 (첫 줄 {line}번째, {msg})',
+      emptyTitle: '아직 데이터가 없어요', emptyBody: '이 페이지는 옆에 있는 <code>summary.json</code>을 읽어요. 저장소에서 만들어 주세요:',
+      emptyStep1: '저장소에서 <code>npx agent-control-tower init</code>',
+      emptyStep2: '<code>npx agent-control-tower log …</code>로 기록 (또는 에이전트 프롬프트에 지시문 붙이기)',
+      emptyStep3: '<code>npx agent-control-tower build --out _site</code> 또는 GitHub Pages 워크플로',
+      emptyStep4: '또는 폴더를 직접 지정: <code>?data=https://raw.githubusercontent.com/OWNER/REPO/main/tower/</code>',
+      openDemo: '데모 보기', theme: { auto: '자동', light: '라이트', dark: '다크' }, kind: {},
+      powered: 'Powered by', footnote: '서버·추적 없음: 이 페이지는 JSON 파일만 읽어요.'
+    }
+  };
+  var KIND_LABEL = { 'claude-code': 'Claude Code', 'llm-agent': 'LLM agent', 'github-actions': 'GitHub Actions', cron: 'cron', other: 'other' };
+
+  var LANG = C.lang(params.get('lang') || (navigator.language || 'en'));
+  function u(key, vars) {
+    var s = UI[LANG][key];
+    if (s === undefined) s = UI.en[key];
+    if (typeof s !== 'string') return s;
+    return s.replace(/\{(\w+)\}/g, function (_, k) { return vars && vars[k] !== undefined ? vars[k] : ''; });
+  }
+
+  var ICON = {
+    ok: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M4.8 8.2l2.1 2.1 4.3-4.5" fill="none" stroke="var(--on-strong)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    warn: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.3l7 12.6H1z" fill="currentColor"/><path d="M8 6v3.6M8 11.6v.1" stroke="#1a1a19" stroke-width="1.7" stroke-linecap="round"/></svg>',
+    fail: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="var(--on-strong)" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    stale: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 4.6V8l2.4 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    none: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2.4 2.2"/></svg>',
+    paused: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="M6.3 5.2v5.6M9.7 5.2v5.6" stroke="var(--on-strong)" stroke-width="1.8" stroke-linecap="round"/></svg>'
+  };
+  function colored(icon, color) { return icon.replace('<svg ', '<svg style="color:var(--' + color + ')" '); }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function pct(x) { return x === null || x === undefined ? '–' : Math.round(x * 100) + '%'; }
+  function safeHref(url) { return C.isHttpUrl(url) ? esc(url) : ''; }
+
+  // ---------- theme ----------
+  var THEMES = ['auto', 'light', 'dark'];
+  var theme = 'auto';
+  try { theme = localStorage.getItem('tower-theme') || 'auto'; } catch (e) {}
+  if (params.get('theme')) theme = params.get('theme');
+  if (THEMES.indexOf(theme) === -1) theme = 'auto';
+  function applyTheme() {
+    if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('theme').textContent = u('theme')[theme];
+  }
+  document.getElementById('theme').addEventListener('click', function () {
+    theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    try { localStorage.setItem('tower-theme', theme); } catch (e) {}
+    applyTheme();
+  });
+  applyTheme();
+
+  // ---------- data ----------
+  function fetchText(url) {
+    var bust = (url.indexOf('?') > -1 ? '&' : '?') + 't=' + Math.floor(Date.now() / 60000);
+    return fetch(url + bust, { cache: 'no-store' }).then(function (res) {
+      if (res.status === 404) { var e = new Error('404 ' + url); e.notFound = true; throw e; }
+      if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + url);
+      return res.text();
+    });
+  }
+
+  function loadSummary(url) {
+    return fetchText(url).then(function (text) {
+      var s = C.readSummary(JSON.parse(text));
+      var notes = s.invalid ? ['summary.json: skipped ' + s.invalid + ' invalid record(s)'] : [];
+      return { config: s.config, byTask: s.byTask, notes: notes, meta: { kind: 'summary', src: url, generatedAt: s.generatedAt, redacted: s.redacted, demo: s.demo } };
+    });
+  }
+
+  function loadDir(base) {
+    if (!/\/$/.test(base)) base += '/';
+    var notes = [];
+    return fetchText(base + 'tower.config.json').then(JSON.parse).then(function (config) {
+      var check = C.validateConfig(config);
+      if (!check.ok) throw new Error('tower.config.json: ' + check.errors.join('; '));
+      var byTask = {};
+      return Promise.all(config.tasks.map(function (t) {
+        var url = t.source && t.source.url ? t.source.url : base + 'logs/' + t.id + '.jsonl';
+        return fetchText(url).then(function (text) {
+          var parsed = C.parseJsonl(text, t.id);
+          byTask[t.id] = parsed.records;
+          if (parsed.errors.length) notes.push(u('badLines', { task: t.id, n: parsed.errors.length, line: parsed.errors[0].line, msg: parsed.errors[0].message }));
+        }).catch(function (e) {
+          byTask[t.id] = [];
+          if (!e.notFound) notes.push(t.id + ': ' + e.message);
+        });
+      })).then(function () { return { config: config, byTask: byTask, notes: notes, meta: { kind: 'dir', src: base } }; });
+    });
+  }
+
+  function load() {
+    if (DEMO) {
+      var d = C.demoData(Date.now());
+      return Promise.resolve({ config: d.config, byTask: d.byTask, notes: [], meta: { kind: 'demo', demo: true } });
+    }
+    if (DATA) {
+      if (!/^(https?:\/\/|\.{0,2}\/|[\w.-])/.test(DATA)) return Promise.reject(new Error('bad ?data= value'));
+      return /\.json(\?|#|$)/.test(DATA) ? loadSummary(DATA) : loadDir(DATA);
+    }
+    return loadSummary('summary.json');
+  }
+
+  // ---------- render ----------
+  function renderTiles(ov) {
+    var active = ov.tasks.filter(function (t) { return t.enabled; }).length;
+    var trouble = ov.counts.fail + ov.counts.stale;
+    var tiles = [
+      { k: colored(ICON.ok, 'good') + esc(u('healthy')), v: ov.counts.ok, s: u('ofActive', { n: active }) },
+      { k: colored(ICON.warn, 'warning') + esc(u('partial')), v: ov.counts.warn, s: u('lastRun') },
+      { k: colored(ICON.fail, 'critical') + esc(u('trouble')), v: trouble, s: trouble ? u('needsLook') : u('noProblems') },
+      { k: esc(u('rate7')), v: pct(ov.weekRate), s: u('basis', { n: ov.weekTotal }) }
+    ];
+    document.getElementById('tiles').innerHTML = tiles.map(function (t) {
+      return '<div class="tile"><div class="k">' + t.k + '</div><div class="v">' + t.v + '</div><div class="s">' + esc(t.s) + '</div></div>';
+    }).join('');
+  }
+
+  function renderAlerts(ov, notes) {
+    var html = ov.problems.map(function (p) {
+      return '<div class="alert ' + p.state + '">' + ICON[p.state] + '<div>' + esc(p.message) + '</div></div>';
+    });
+    notes.forEach(function (n) { html.push('<div class="alert info">' + esc(n) + '</div>'); });
+    document.getElementById('alerts').innerHTML = html.join('');
+  }
+
+  function dayTip(d, v) {
+    var wd = C.tr(LANG, 'weekdays')[d.wd];
+    var lines = [d.label + ' (' + wd + ')' + (d.isToday ? ' · ' + u('today') : '')];
+    if (!d.total) lines.push(u('noRecord'));
+    else {
+      lines.push(u('runs', { n: d.total }) + (v.perDay > 1 ? u('expectedRuns', { n: Math.round(v.perDay) }) : ''));
+      lines.push(u('breakdown', { ok: d.ok }) + (d.warn ? u('partialN', { n: d.warn }) : '') + (d.fail ? u('failN', { n: d.fail }) : ''));
+    }
+    return lines.join('<br>');
+  }
+
+  function renderCard(v, tz) {
+    var last = v.last;
+    var lastHtml;
+    if (last) {
+      var more = [];
+      if (last.link && safeHref(last.link)) more.push('<a href="' + safeHref(last.link) + '" target="_blank" rel="noopener">' + esc(u('viewResult')) + '</a>');
+      if (typeof last.duration === 'number') more.push(esc(u('took', { s: last.duration })));
+      if (last.metrics) Object.keys(last.metrics).slice(0, 4).forEach(function (k) { more.push(esc(k) + ' <b>' + esc(last.metrics[k]) + '</b>'); });
+      lastHtml = '<div class="last"><div class="when"><span>' + esc(u('lastRunAt', { time: C.formatTime(v.lastAt, tz, LANG) })) + '</span><span>' + esc(C.formatAgo(v.lastAgoMs, LANG)) + '</span></div>' +
+        '<div class="sum">' + esc(last.summary) + '</div>' + (more.length ? '<div class="more">' + more.join('<span aria-hidden="true">·</span>') + '</div>' : '') + '</div>';
+    } else {
+      lastHtml = '<div class="last empty"><div class="sum">' + esc(v.enabled ? u('noneYet') : u('pausedTxt')) + '</div></div>';
+    }
+
+    var maxSeg = 40;
+    var strip = v.days.map(function (d) {
+      var h = Math.round(maxSeg * d.fill);
+      var segs = ['ok', 'warn', 'fail'].map(function (s) {
+        if (!d[s] || !d.total) return '';
+        return '<div class="seg ' + s + '" style="height:' + Math.max(3, Math.round(h * d[s] / d.total)) + 'px"></div>';
+      }).join('');
+      var tip = dayTip(d, v);
+      return '<div class="day' + (d.isToday ? ' today' : '') + '" tabindex="0" data-tip="' + esc(tip) + '" aria-label="' + esc(tip.replace(/<br>/g, ', ')) + '">' +
+        '<div class="bar">' + segs + '</div><div class="dlabel">' + esc(C.tr(LANG, 'weekdays')[d.wd]) + '<br>' + esc(d.label.split('/')[1]) + '</div></div>';
+    }).join('');
+
+    var w = v.week;
+    var rateHtml = '<div class="rate"><div class="lbl">' + esc(u('successRate')) + '</div><div class="num">' + pct(w.rate) + '</div>' +
+      '<div class="sub">' + esc(u('successOf', { ok: w.ok, total: w.total })) + '</div>' +
+      (w.coverage !== null ? '<div class="sub" title="' + esc(u('coverageTip')) + '">' + esc(u('coverage', { p: pct(w.coverage) })) + '</div>' : '') + '</div>';
+
+    var runs = v.recent.length
+      ? '<details><summary><span>' + esc(u('recent', { n: v.recent.length })) + '</span><span class="chev" data-open="' + esc(u('close')) + '" data-closed="' + esc(u('open')) + '">' + esc(u('open')) + '</span></summary><ul class="runs">' + v.recent.map(function (r) {
+          return '<li><span class="' + r.status + '" title="' + esc(C.tr(LANG, 'status')[r.status]) + '">' + ICON[r.status] + '</span><span class="t">' + esc(C.formatTime(Date.parse(r.at), tz, LANG)) + '</span><span class="x">' + esc(r.summary) + '</span></li>';
+        }).join('') + '</ul></details>'
+      : '';
+
+    var label = v.state === 'stale' ? u('silentFor', { dur: C.formatDuration(v.silentForMs, LANG) }) : C.tr(LANG, 'state')[v.state];
+    var name = v.link ? '<a href="' + safeHref(v.link) + '" target="_blank" rel="noopener">' + esc(v.name) + '</a>' : esc(v.name);
+    var kind = v.kind ? '<span class="kind">' + esc(KIND_LABEL[v.kind] || v.kind) + '</span>' : '';
+    return '<article class="card st-' + v.state + (v.enabled ? '' : ' paused') + '">' +
+      '<div class="card-top"><div style="min-width:0"><h2>' + name + '</h2><div class="sched">' + kind + '<span>' + esc(v.schedule || u('every', { every: C.formatEvery(v.everyHours, LANG) })) + '</span></div></div>' +
+      '<span class="pill">' + ICON[v.state] + esc(label) + '</span></div>' +
+      lastHtml +
+      '<div class="week"><div class="strip" role="group" aria-label="last 7 days">' + strip + '</div>' + rateHtml + '</div>' +
+      runs + '</article>';
+  }
+
+  function renderEmpty(err) {
+    document.getElementById('tiles').innerHTML = '';
+    document.getElementById('alerts').innerHTML = err && !err.notFound ? '<div class="alert info">' + esc(err.message) + '</div>' : '';
+    var demoHref = '?demo' + (params.get('lang') ? '&lang=' + encodeURIComponent(params.get('lang')) : '');
+    document.getElementById('cards').innerHTML = '<div class="empty-state"><h2>' + esc(u('emptyTitle')) + '</h2><p>' + u('emptyBody') + '</p><ol>' +
+      '<li>' + u('emptyStep1') + '</li><li>' + u('emptyStep2') + '</li><li>' + u('emptyStep3') + '</li><li>' + u('emptyStep4') + '</li></ol>' +
+      '<a class="btn primary" href="' + demoHref + '">' + esc(u('openDemo')) + '</a></div>';
+    document.getElementById('updated').textContent = '';
+  }
+
+  var current = null;
+  function render() {
+    if (!current) return;
+    var data = current;
+    var cfg = data.config;
+    var ov = C.computeOverview(cfg, data.byTask, Date.now(), { lang: LANG });
+    var tz = ov.timezone;
+    renderTiles(ov);
+    renderAlerts(ov, data.notes);
+    document.getElementById('cards').innerHTML = ov.tasks.map(function (v) { return renderCard(v, tz); }).join('');
+    document.getElementById('title').textContent = cfg.title || C.tr(LANG, 'title');
+    document.getElementById('updated').textContent = u('checked', { time: C.formatTime(ov.now, tz, LANG) + ' ' + C.tzLabel(tz) });
+    var flags = [];
+    if (data.meta.demo) flags.push('<span class="flag">' + esc(u('demo')) + '</span>');
+    if (data.meta.redacted) flags.push('<span class="flag">' + esc(u('redacted')) + '</span>');
+    document.getElementById('flag').innerHTML = flags.join(' ');
+    var src;
+    if (data.meta.kind === 'demo') src = u('srcDemo');
+    else if (data.meta.kind === 'summary') src = u('srcSummary', { src: data.meta.src, ago: data.meta.generatedAt ? C.formatAgo(Date.now() - Date.parse(data.meta.generatedAt), LANG) : '?' });
+    else src = u('srcDir', { src: data.meta.src });
+    document.getElementById('sources').textContent = src + ' ' + u('autoRefresh');
+    document.title = (ov.problems.length ? '(' + ov.problems.length + ') ' : '') + (cfg.title || C.tr(LANG, 'title'));
+  }
+
+  // ---------- tooltips & details ----------
+  var tip = document.getElementById('tip');
+  function showTip(el) {
+    tip.innerHTML = el.getAttribute('data-tip');
+    var r = el.getBoundingClientRect();
+    tip.classList.add('show');
+    var tw = tip.offsetWidth, th = tip.offsetHeight;
+    var x = Math.min(window.innerWidth - tw - 8, Math.max(8, r.left + r.width / 2 - tw / 2));
+    var y = r.top - th - 8;
+    if (y < 8) y = r.bottom + 8;
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+  }
+  function hideTip() { tip.classList.remove('show'); }
+  function tipTarget(e) { return e.target.closest && e.target.closest('[data-tip]'); }
+  document.addEventListener('mouseover', function (e) { var el = tipTarget(e); if (el) showTip(el); else hideTip(); });
+  document.addEventListener('focusin', function (e) { var el = tipTarget(e); if (el) showTip(el); else hideTip(); });
+  document.addEventListener('focusout', hideTip);
+  window.addEventListener('scroll', hideTip, { passive: true });
+  document.addEventListener('toggle', function (e) {
+    var chev = e.target.querySelector && e.target.querySelector('.chev');
+    if (chev) chev.textContent = e.target.open ? chev.getAttribute('data-open') : chev.getAttribute('data-closed');
+  }, true);
+
+  // ---------- static labels ----------
+  document.documentElement.lang = LANG;
+  document.getElementById('refresh').textContent = u('refresh');
+  document.getElementById('updated').textContent = u('loading');
+  document.getElementById('powered').textContent = u('powered');
+  document.getElementById('footnote').textContent = u('footnote');
+
+  function refresh() {
+    var btn = document.getElementById('refresh');
+    btn.disabled = true;
+    btn.textContent = u('loading');
+    return load().then(function (data) {
+      current = data;
+      render();
+    }).catch(function (e) {
+      if (current) {
+        document.getElementById('alerts').insertAdjacentHTML('afterbegin', '<div class="alert fail">' + ICON.fail + '<div>' + esc(u('loadFail', { msg: e.message })) + '</div></div>');
+      } else renderEmpty(e);
+    }).then(function () {
+      btn.disabled = false;
+      btn.textContent = u('refresh');
+    });
+  }
+  document.getElementById('refresh').addEventListener('click', refresh);
+  refresh();
+  setInterval(refresh, 5 * 60 * 1000);
+  setInterval(render, 60 * 1000); // ages and "silent" states move even without new data
+})();
+</script>
+</body>
+</html>

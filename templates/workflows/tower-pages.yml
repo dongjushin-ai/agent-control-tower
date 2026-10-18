@@ -1,0 +1,51 @@
+# agent-control-tower dashboard on GitHub Pages
+# One-time setup: Settings > Pages > Build and deployment > Source: GitHub Actions.
+# The page decides "silent" in the browser from timestamps, so it never needs to rebuild just to notice a dead agent.
+# PRIVATE REPO? Pages sites are public (except GitHub Enterprise Cloud private Pages). Add --redact below,
+# or skip this workflow and use the watchdog + `npx agent-control-tower serve` instead (see docs/private-repos.md).
+name: tower dashboard
+
+on:
+  push:
+    branches: [main]
+    paths: ['tower/**']
+  schedule:
+    # Pushes made with GitHub Actions' GITHUB_TOKEN do not trigger workflows.
+    # If some agents log from Actions, this keeps the page at most ~3h behind. Remove if not needed.
+    - cron: '41 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: tower-pages
+  cancel-in-progress: true
+
+env:
+  # Before the npm release you can use: github:dongjushin-ai/agent-control-tower
+  TOWER_PKG: agent-control-tower@0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npx --yes "$TOWER_PKG" build --dir tower --out _site --days 14
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

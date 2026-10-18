@@ -1,0 +1,35 @@
+# agent-control-tower watchdog
+# Runs on GitHub's clock, not your agent's: if an agent dies without writing anything,
+# this job turns red within the hour and GitHub emails you (Settings > Notifications > Actions).
+# Works in private repos. Needs no secrets and publishes nothing.
+name: tower watchdog
+
+on:
+  schedule:
+    - cron: '17 * * * *' # hourly at :17
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Before the npm release you can use: github:dongjushin-ai/agent-control-tower
+  TOWER_PKG: agent-control-tower@0
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Check agents (fails if any task is failing or silent)
+        run: |
+          set +e
+          npx --yes "$TOWER_PKG" status --dir tower --markdown > tower-status.md
+          code=$?
+          cat tower-status.md >> "$GITHUB_STEP_SUMMARY"
+          cat tower-status.md
+          exit $code

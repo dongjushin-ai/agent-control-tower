@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "title": "My agents",
+  "timezone": "America/New_York",
+  "locale": "en",
+  "tasks": [
+    {
+      "id": "nightly-research",
+      "name": "Nightly research agent",
+      "kind": "claude-code",
+      "schedule": "daily 02:00 (cloud scheduled task)",
+      "everyHours": 24
+    },
+    {
+      "id": "pr-triage",
+      "name": "PR triage bot",
+      "kind": "github-actions",
+      "schedule": "every 6h",
+      "everyHours": 6,
+      "graceHours": 2,
+      "link": "https://github.com/OWNER/REPO/actions/workflows/triage.yml"
+    },
+    {
+      "id": "db-backup",
+      "name": "Postgres backup",
+      "kind": "cron",
+      "schedule": "hourly",
+      "everyHours": 1
+    },
+    {
+      "id": "other-repo-agent",
+      "name": "Agent that logs in another public repo",
+      "kind": "llm-agent",
+      "everyHours": 24,
+      "source": { "url": "https://raw.githubusercontent.com/OWNER/OTHER-REPO/main/tower/logs/other-repo-agent.jsonl" }
+    },
+    {
+      "id": "weekly-report",
+      "name": "Weekly report",
+      "everyHours": 168,
+      "enabled": false
+    }
+  ]
+}

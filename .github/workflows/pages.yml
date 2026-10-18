@@ -1,0 +1,59 @@
+# Publishes the dashboard (with the built-in demo) to GitHub Pages.
+# Skips quietly until Pages is enabled: Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: Demo page
+
+on:
+  push:
+    branches: [main]
+    paths: ['dashboard/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - name: Is GitHub Pages enabled?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" --jq .build_type >/dev/null 2>&1; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GitHub Pages is not enabled yet (Settings > Pages > Source: GitHub Actions). Skipping deploy."
+          fi
+      - uses: actions/checkout@v5
+        if: steps.check.outputs.enabled == 'true'
+      - name: Assemble site (root opens the built-in demo data)
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          mkdir -p _site
+          cp dashboard/tower-core.js _site/
+          sed 's|<meta name="color-scheme" content="light dark">|&\n<meta name="tower-default" content="demo">|' dashboard/index.html > _site/index.html
+          grep -q 'tower-default' _site/index.html
+      - uses: actions/upload-pages-artifact@v4
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          path: _site
+  deploy:
+    needs: build
+    if: needs.build.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
