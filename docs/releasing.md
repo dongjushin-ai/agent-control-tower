@@ -1,22 +1,28 @@
-# npm 배포 방법 (DockY용, 5분)
+# npm 배포 방법 (DockY용)
 
-이 저장소는 `v*` 태그를 push하면 GitHub Actions(`.github/workflows/release.yml`)가 테스트 후 npm에 올려요.
-`NPM_TOKEN`이 없으면 테스트만 하고 배포는 건너뛰어요(실패하지 않아요).
+`v*` 태그가 생기면 GitHub Actions(`.github/workflows/release.yml`)가 테스트 후 npm에 **스테이징**해요.
+스테이징된 버전은 npmjs.com에서 2FA로 승인해야 설치할 수 있게 돼요. CI가 혼자서 공개 배포하는 일은 없어요.
+(npm은 2FA를 건너뛰는 토큰의 직접 배포를 2027년 1월쯤 막을 예정이라, 처음부터 이 방식으로 했어요.)
 
-1. **npm 계정 만들기**: https://www.npmjs.com/signup 에서 가입하고 이메일을 인증해요. 2FA를 켜 두세요.
-2. **토큰 발급**: npm 로그인 후 프로필 > Access Tokens > Generate New Token > **Granular Access Token**.
-   - Packages and scopes: Read and write
-   - Bypass two-factor authentication(자동화용)을 허용해야 CI에서 쓸 수 있어요
-   - 만료일은 짧게(예: 90일). 토큰 값은 한 번만 보이니 바로 다음 단계에서 써요
-   - 처음 올리는 이름은 패키지가 아직 없으니 "All packages" 범위로 발급하고, 첫 배포 뒤 토큰 범위를 `agent-control-tower` 하나로 좁히면 더 안전해요
-3. **저장소에 등록**: GitHub의 `dongjushin-ai/agent-control-tower` > Settings > Secrets and variables > Actions >
-   New repository secret > 이름 `NPM_TOKEN`, 값은 위 토큰.
-4. **태그 push**: `package.json`의 `version`과 태그가 같아야 해요(0.1.0이면 `v0.1.0`).
-   ```bash
-   git tag v0.1.0 && git push --tags
-   ```
-5. **확인**: Actions 탭의 Release 실행이 초록이면 https://www.npmjs.com/package/agent-control-tower 에 올라가 있어요.
-   그다음 `npx agent-control-tower help`가 동작하는지 한 번 돌려 보세요.
+## 처음 한 번 (패키지가 아직 없을 때)
 
-다음 버전은 `package.json` 버전과 `CHANGELOG.md`를 올리고 커밋한 뒤 `git tag v0.1.1 && git push --tags`.
-태그 이름과 버전이 다르면 워크플로가 일부러 실패해요. 이미 올라간 버전은 다시 올릴 수 없어요.
+1. **2FA 켜기**: npmjs.com 프로필 > Account > Two-Factor Authentication.
+2. **짧은 토큰 발급**: 프로필 > Access Tokens > Generate New Token > **Granular Access Token**.
+   - 스테이징 전용(stage-only) 권한이 있으면 그걸 고르고, 없으면 Packages and scopes: Read and write
+   - 대상: All packages (패키지가 아직 없어서), 만료: 7일
+   - 2FA 우회(bypass) 옵션은 켜지 마세요. 스테이징은 2FA 없이 되고, 공개는 사람이 승인해요
+3. **저장소에 등록**: Settings > Secrets and variables > Actions > New repository secret > 이름 `NPM_TOKEN`.
+4. **릴리스 만들기**: Releases > Draft a new release > 태그 `v0.1.0` (Create new tag) > Publish release.
+   `package.json`의 `version`과 태그가 같아야 해요.
+5. **승인**: Actions의 Release가 초록이 되면 npmjs.com > 프로필 > Staged Packages(또는 `npm stage list`)에서
+   내용을 확인하고 2FA로 **Approve**. 이때 https://www.npmjs.com/package/agent-control-tower 에 올라가요.
+6. **토큰 없애기 → 신뢰할 수 있는 게시자로 전환**:
+   - npmjs.com > agent-control-tower 패키지 > Settings > Trusted Publisher > GitHub Actions
+     (owner `dongjushin-ai`, repo `agent-control-tower`, workflow `release.yml`, environment `npm`,
+     허용 동작: stage publish)
+   - npm Access Tokens에서 위 토큰을 지우고, GitHub Secrets의 `NPM_TOKEN`도 지워요.
+
+## 다음 버전부터
+
+`package.json` 버전과 `CHANGELOG.md`를 올려 커밋 → 같은 이름의 릴리스(`v0.1.1`) 만들기 → npmjs.com에서 Approve.
+토큰은 필요 없어요. 태그와 버전이 다르면 워크플로가 일부러 실패해요. 이미 올라간 버전은 다시 올릴 수 없어요.

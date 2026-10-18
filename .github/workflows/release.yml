@@ -1,18 +1,22 @@
 name: Release
 
-# Runs when a version tag is pushed:  git tag v0.1.0 && git push --tags
-# Tests first, then publishes to npm with provenance. Without an NPM_TOKEN secret it only tests and skips publishing.
+# Runs when a version tag is pushed (or a GitHub release creates one): v0.1.0, v0.2.0, ...
+# Tests, then STAGES the version on npm with provenance. Nothing becomes installable until
+# a maintainer approves it on npmjs.com (Staged Packages tab) with 2FA - see docs/releasing.md.
+# Auth: npm trusted publishing (OIDC, no secret) once configured on npmjs.com;
+# for the very first release, a short-lived NPM_TOKEN secret instead.
 on:
   push:
     tags: ['v*']
 
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # npm trusted publishing + provenance
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: npm
     env:
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
@@ -21,6 +25,8 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+      - name: npm with staged publishing
+        run: npm install -g npm@latest && npm --version
       - name: Tag matches package.json version
         run: |
           pkg="v$(node -p "require('./package.json').version")"
@@ -32,9 +38,5 @@ jobs:
         run: npm test
       - name: Package contents
         run: npm pack --dry-run
-      - name: Publish to npm
-        if: ${{ env.NODE_AUTH_TOKEN != '' }}
-        run: npm publish --provenance --access public
-      - name: Skip publish (no NPM_TOKEN)
-        if: ${{ env.NODE_AUTH_TOKEN == '' }}
-        run: echo "::warning::NPM_TOKEN secret is not set, so nothing was published. See docs/releasing.md."
+      - name: Stage on npm (approve on npmjs.com to publish)
+        run: npm stage publish . --provenance --access public
